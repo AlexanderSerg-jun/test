@@ -1,0 +1,59 @@
+---
+- name: "DNS lookup of master node: {{ item_master.name }}"
+  debug:
+    msg: "{{ lookup('dig', item_master.name, 'qtype=A') }}"
+  run_once: True
+  register: dns_master_ip
+
+- name: Set master_ip and master_port
+  set_fact:
+    master_ip: "{{ dns_master_ip.msg }}"
+    master_port: "{{ item_master.port }}"
+
+- name: "Discover master id of {{ item_master.name }}"
+  shell: redis-cli -h {{ master_ip }} -p {{ master_port }} CLUSTER NODES | grep myself | cut -d " " -f 1
+  register: redis_nodes
+  changed_when: false
+  run_once: True
+
+- name: "Set master id of {{ item_master.name }}"
+  set_fact:
+    master_id: "{{ redis_nodes.stdout }}"
+  when: redis_nodes.stdout != ""
+
+- name: "Print master id of {{ item_master.name }}"
+  debug:
+    var: master_id
+
+- name: "DNS lookup of slave node: {{ item_slave.name }}"
+  debug:
+    msg: "{{ lookup('dig', item_slave.name, 'qtype=A') }}"
+  register: dns_slave_ip
+
+- name: Set slave_ip and slave_port
+  set_fact:
+    slave_ip: "{{ dns_slave_ip.msg }}"
+    slave_port: "{{ item_slave.port }}"
+
+- name: Show add-node command
+  debug:
+    msg: "redis-trib add-node --slave --master-id {{ master_id }} {{ slave_ip }}:{{ slave_port }} {{ master_ip }}:{{ master_port }}"
+  register: slave_command
+
+- debug: var=slave_command
+
+- name: Create redis slaves
+  shell: "printf 'yes' | redis-trib add-node --slave --master-id {{ master_id }} {{ slave_ip }}:{{ slave_port }} {{ master_ip }}:{{ master_port }}"
+  args:
+    creates: /etc/redis/redis-cluster-slave-{{ slave_ip | replace('.','-') }}-{{ slave_port }}.created
+  run_once: True
+  register: redis_trib
+
+- name: Make created file if redis slaves are created
+  file:
+    path: /etc/redis/redis-cluster-slave-{{ slave_ip | replace('.','-') }}-{{ slave_port }}.created
+    state: touch
+    owner: redis
+    group: redis
+    mode: 0750
+  when: redis_trib is defined and "[OK] New node added correctly." in redis_trib.stdout 

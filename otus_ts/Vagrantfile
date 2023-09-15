@@ -1,0 +1,39 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+Vagrant.configure(2) do |config|
+    config.vm.box = "bento/debian-11"
+    config.vm.define "webapp" do |webapp|
+    webapp.vm.hostname = "webapp"
+    webapp.vm.network "private_network", ip: "192.168.56.2"
+  end
+  config.vm.box = "bento/debian-11"
+  config.vm.define "redis1" do |redis1|
+  redis1.vm.hostname = "redis1"
+  redis1.vm.network "private_network", ip: "192.168.56.4"
+end
+config.vm.box = "bento/debian-11"
+  config.vm.define "redis2" do |redis2|
+  redis2.vm.hostname = "redis2"
+  redis2.vm.network "private_network", ip: "192.168.56.5"
+end
+config.vm.box = "bento/debian-11"
+  config.vm.define "redis3" do |redis3|
+  redis3.vm.hostname = "redis3"
+  redis3.vm.network "private_network", ip: "192.168.56.6"
+end
+config.vm.box = "bento/debian-11"
+  config.vm.define "redis4" do |redis4|
+  redis4.vm.hostname = "redis4"
+  redis4.vm.network "private_network", ip: "192.168.56.7"
+end
+
+
+ config.vm.provision "ansible" do |ansible|
+    
+     ansible.playbook = "playbook.yml"
+     ansible.inventory_path = "hosts"
+   ansible.host_key_checking = "false"
+   end
+
+end

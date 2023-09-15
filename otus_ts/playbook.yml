@@ -1,0 +1,15 @@
+---
+- hosts: web
+
+  gather_facts: yes
+
+ 
+  roles:
+    - nginx
+  handlers:
+    - include: handlers/main.yml   
+ 
+
+- hosts: redis
+  roles:
+    - redis-cluster.chaordic

@@ -1,0 +1,39 @@
+---
+- name: Check if redis is installed
+  stat:
+    path: /usr/local/bin/redis-server
+  register: is_installed
+  changed_when: no
+
+- block:
+  - name: Install required packages to build
+    become: true
+    apt:
+      name: "{{ item }}"
+      state: present
+    with_items:
+      - tcl
+      - wget
+      - make
+      - build-essential
+      - gem
+  
+  - name: Install required packages to build1
+    become: true
+    gem:
+      name: redis
+      state: present
+
+  - name: Copy redis build script
+    become: true
+    template:
+      src: redis_build.sh.j2
+      dest:  /tmp/redis_build.sh
+      mode: 0744
+    delegate_to: localhost
+    become: no
+
+  - name: "Build redis {{ redis_cluster_version }} from the source"
+    become: true
+    script: /tmp/redis_build.sh
+  when: not is_installed.stat.exists

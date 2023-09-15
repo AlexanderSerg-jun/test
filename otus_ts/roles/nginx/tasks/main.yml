@@ -1,0 +1,19 @@
+---
+- name: Install Nginx web server
+  become: true
+  apt: 
+    name: nginx 
+    state: latest
+  tags:
+    - nginx
+  notify: restart nginx
+     
+
+- name: Update nginx config files
+  become: true
+  template:
+    src: templates/default
+    dest: "/etc/nginx/sites-enabled/"
+  tags:
+    - nginx
+  notify: restart nginx
